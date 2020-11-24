@@ -1,0 +1,112 @@
+
+<!DOCTYPE html><html>
+ <meta charset="UTF-8">
+ <title>マンデルブロ集合</title>
+ <style>
+   html,body{height:100%;}
+   #img{
+     max-width:100%;
+     max-height:100%;
+   }
+ </style>
+ <script type="text/javascript" async 
+       src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML">
+   </script>
+ <script type="text/x-mathjax-config">
+ MathJax.Hub.Config({
+ TeX: { equationNumbers: { autoNumber: "AMS" }},
+ tex2jax: {
+ inlineMath: [ ['$','$'], ["\\(","\\)"] ],
+ processEscapes: true
+ },
+ "HTML-CSS": { matchFontHeight: false },
+ displayAlign: "left",
+ displayIndent: "2em"
+ });
+ </script>
+<body>
+マンデルブロ集合
+<img id="img">
+<br>画質:<input type="number" value="600" onchange="window.pixel=this.value">px
+<br>中心(実部):<input type="number" value="0" onchange="window.centerX=this.value*1">
+<br>中心(虚部):<input type="number" value="0" onchange="window.centerY=this.value*1">
+<br>計算範囲一辺:<input type="number" value="4.2" id="size" onchange="window.size=this.value*1">
+<br><input type="button" value="描画" onclick="draw()">  |  <input type="button" value="保存" onclick="save()">
+ | <input type="button" value="倍率*2" onclick="draw(window.size/=2);">
+ | <input type="button" value="倍率*5" onclick="draw(window.size/=5);">
+ | <input type="button" value="倍率*10" onclick="draw(window.size/=10);">
+ | <input type="button" value="倍率*1/2" onclick="draw(window.size*=2);">
+ | <input type="button" value="倍率*1/5" onclick="draw(window.size*=5);">
+ | <input type="button" value="倍率*1/10" onclick="draw(window.size*=10);">
+<br><br>
+マンデルブロ集合とは、漸化式
+\begin{cases}z_{{n+1}}=z_{n}^{2}+c\\z_{0}=0\end{cases}
+で定義される複素数列が発散しない$C$の集まりで、フラクタル(自己相似)の一つ
+<br><br><br>プロット範囲:$-2.1\leqq Re\ z\leqq 2.1,-2.1\leqq Im\ z\leqq 2.1$<br>各点において最大
+<select onchange="window.loopMax=this.value"><option>50</option><option selected>100</option><option>300</option><option>500</option><option>1000</option></select>
+回まで計算し、$|z_{n}^2|>$
+<select onchange="window.vMax=this.value"><option>2</option><option selected>5</option><option>10</option><option>20</option></select>
+の場合発散判定をします。($|z|>2の場合必ず発散する$)
+<br>
+<br>集合に属する:暗い青($z$の実部が大きいほど青く)
+<br>
+<br>発散判定時に、
+<br>$n$が奇数なら緑が強く
+<br>$n$が大きいほど青く
+<br>$|z|$が大きいほど赤く
+<br>なるように描画しています。
+<canvas id="canvas" style="display:none;"></canvas>
+<script>
+var centerX=0;
+var centerY=0;
+var size = 4.2;                                // 描く領域の一辺の長さ
+var pixel = 600;                             // 描く領域の一辺のピクセル数
+var loopMax=100;
+var vMax=10;
+var canvas=document.getElementById('canvas');
+var ctx=canvas.getContext('2d');
+var img=document.getElementById('img');
+draw();
+
+function draw(){
+document.getElementById('size').value=size;
+canvas.height=pixel;
+canvas.width=pixel;
+ctx.clearRect(0,0,pixel,pixel);
+var iData=ctx.getImageData(0,0,pixel,pixel);
+var data=iData.data;
+for(var i=0;i<pixel;i++){            // x（実部）方向のループ
+    var x = i*size/pixel-size/2+centerX     // 定数Cの実部
+    for(var j=0;j<pixel;j++){        // y（虚部）方向のループ
+        var y = j*size/pixel-size/2-centerY; // 定数Cの虚部
+        var a = 0,b=0;                          // くり返し計算に使う複素数zの虚部
+        data[(j*pixel+i)*4+3]=255;
+        for(var k=0;k<loopMax;k++){       // 上限を50回とするくり返し計算
+            var _a=a*a-b*b+x;      // z^2+Cの計算（実部）
+            b=2*a*b+y;          // z^2+Cの計算（虚部）         
+            a=_a;             // zの値を更新（虚部）
+            if(a*a+b*b >vMax||(k==loopMax-1&&a*a+b*b>2)) {     // もし絶対値が2.1*√2を（絶対値の2乗が11を）超えていたら
+                data[(j*pixel+i)*4+1]=a&1?100:200;
+                data[(j*pixel+i)*4]=(a*a+b*b)*10;
+                data[(j*pixel+i)*4+2]=Math.floor(k*k*2);              // (i,j)の位置のピクセルを「マンデルブロ集合でない色」で塗りつぶして
+                break;                   // 次の点の計算へ
+            }else if(k==loopMax-1){
+              data[(j*pixel+i)*4+1]=0;
+              data[(j*pixel+i)*4+2]=64+a*200;
+              data[(j*pixel+i)*4]=0;
+            }
+        }
+    }
+}
+ctx.putImageData(iData,0,0);
+img.src=canvas.toDataURL();
+}
+
+function save(){
+  var ae=document.createElement('a');
+  ae.download="Mandelbrot_"+pixel+"px_"+new Date+".png";
+  ae.href=canvas.toDataURL();
+  ae.click();
+}
+</script>
+</body>
